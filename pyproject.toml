@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xiaozhe-text2sql"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic-settings",
+    "PyMySQL",
+    "redis",
+    "langgraph",
+    "langchain-ollama",
+    "langgraph-checkpoint-redis",
+]
+
+[project.optional-dependencies]
+test = ["pytest", "httpx"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+t2s = ["resources/catalog/*.json", "resources/prompts/*.txt", "resources/web/*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

@@ -1,0 +1,207 @@
+{
+  "models": {
+    "orders": {
+      "description": "销售订单。支付金额、支付总额、成功付款订单数量、退款后净额的订单归属。paid_at支付日期，paid_cents支付金额，status=paid。金额分。"
+    },
+    "order_items": {
+      "description": "销售订单商品明细。order_id关联orders.id，product_id关联products.id。品类支付额按明细paid_cents累计，品类订单数按order_id去重。"
+    },
+    "products": {
+      "description": "商品资料，名称name，品类category。耳机、键盘、电脑。连接订单明细、库存余额。不是销售金额或库存数量事实表。"
+    },
+    "refunds": {
+      "description": "已执行退款事实。订单关联order_id。amount_cents为退款金额，只有completed计入退款后净额；先按订单聚合，全部跨月退款按支付订单归属。"
+    },
+    "shipments": {
+      "description": "发货包裹事实。一个销售订单可能多个包裹。shipped_at发货时间；shipped或delivered算已发货，按order_id去重得到已发货订单数。"
+    },
+    "inventory_balances": {
+      "description": "库存余额快照。商品product_id，仓库warehouse_id，snapshot_date快照日期，on_hand现存库存数量。当前仅有2026-10-31，不是库存变动流水。"
+    },
+    "warehouses": {
+      "description": "仓库字典。仓库名称name，仓库编号id。"
+    },
+    "carriers": {
+      "description": "物流承运商字典。承运商名称name。"
+    },
+    "payment_transactions": {
+      "description": "支付渠道尝试流水。一订单可以多次支付尝试，包含失败，禁止代替订单支付金额和成功支付订单数。"
+    },
+    "refund_requests": {
+      "description": "退款申请表，申请时间和申请金额；未必实际完成，不得当成实际退款事实。"
+    },
+    "order_status_events": {
+      "description": "订单状态事件日志。一订单有多次事件，不得直接计作订单数。"
+    },
+    "inventory_movements": {
+      "description": "库存变更流水，delta_qty增减量；不是当前库存快照，不能简单累计当库存余额。"
+    },
+    "suppliers": {
+      "description": "供应商字典。供应商名称。"
+    },
+    "purchase_orders": {
+      "description": "采购单事实。采购数量quantity，订货时间ordered_at。不是销售订单或库存余额。"
+    }
+  },
+  "relationships": [
+    {
+      "models": [
+        "orders",
+        "order_items"
+      ],
+      "joinType": "ONE_TO_MANY",
+      "condition": "orders.id=order_items.order_id"
+    },
+    {
+      "models": [
+        "order_items",
+        "products"
+      ],
+      "joinType": "MANY_TO_ONE",
+      "condition": "order_items.product_id=products.id"
+    },
+    {
+      "models": [
+        "orders",
+        "refunds"
+      ],
+      "joinType": "ONE_TO_MANY",
+      "condition": "orders.id=refunds.order_id",
+      "note": "净额先按order_id聚合退款"
+    },
+    {
+      "models": [
+        "inventory_balances",
+        "products"
+      ],
+      "joinType": "MANY_TO_ONE",
+      "condition": "inventory_balances.product_id=products.id"
+    }
+  ],
+  "metrics": {
+    "paid": {
+      "name": "支付成功订单实付金额",
+      "aliases": [
+        "支付金额",
+        "实付金额"
+      ],
+      "description": "按支付日归属，金额单位分；品类支付金额按明细分摊。",
+      "dimensions": [
+        "none",
+        "day",
+        "month",
+        "category"
+      ],
+      "tables": [
+        "orders"
+      ],
+      "source": "orders o",
+      "timeColumn": "o.paid_at",
+      "condition": "o.status='paid'",
+      "expression": "COALESCE(SUM(o.paid_cents),0)",
+      "categoryJoin": " JOIN order_items i ON i.order_id=o.id JOIN products p ON p.id=i.product_id",
+      "categoryExpression": "COALESCE(SUM(i.paid_cents),0)",
+      "snapshotDate": null
+    },
+    "count": {
+      "name": "支付成功订单数",
+      "aliases": [
+        "已付款订单数",
+        "支付订单数"
+      ],
+      "description": "按支付日归属，单数按订单去重。",
+      "dimensions": [
+        "none",
+        "day",
+        "month"
+      ],
+      "tables": [
+        "orders"
+      ],
+      "source": "orders o",
+      "timeColumn": "o.paid_at",
+      "condition": "o.status='paid'",
+      "expression": "COUNT(DISTINCT o.id)",
+      "categoryJoin": " JOIN order_items i ON i.order_id=o.id JOIN products p ON p.id=i.product_id",
+      "categoryExpression": "COUNT(DISTINCT o.id)",
+      "snapshotDate": null
+    },
+    "net": {
+      "name": "实付减这些订单全部已完成退款（含跨月）",
+      "aliases": [],
+      "description": "先按订单聚合全部已完成退款，防止多笔退款重复累计订单实付；含跨月退款，时间归属支付日。原话必须明确认可算法或用户点选。",
+      "dimensions": [
+        "none",
+        "day",
+        "month"
+      ],
+      "tables": [
+        "orders",
+        "refunds"
+      ],
+      "source": "orders o LEFT JOIN (SELECT order_id,SUM(amount_cents) amount FROM refunds WHERE status='completed' GROUP BY order_id) r ON r.order_id=o.id",
+      "timeColumn": "o.paid_at",
+      "condition": "o.status='paid'",
+      "expression": "COALESCE(SUM(o.paid_cents-COALESCE(r.amount,0)),0)",
+      "categoryJoin": null,
+      "categoryExpression": "COALESCE(SUM(o.paid_cents-COALESCE(r.amount,0)),0)",
+      "snapshotDate": null
+    },
+    "shipped_orders": {
+      "name": "已发货订单数",
+      "aliases": [
+        "已送达或已发货订单数"
+      ],
+      "description": "按发货时间归属，一个订单多个包裹只算一单。",
+      "dimensions": [
+        "none",
+        "day",
+        "month"
+      ],
+      "tables": [
+        "shipments"
+      ],
+      "source": "shipments s",
+      "timeColumn": "s.shipped_at",
+      "condition": "s.status IN ('shipped','delivered')",
+      "expression": "COUNT(DISTINCT s.order_id)",
+      "categoryJoin": null,
+      "categoryExpression": "COUNT(DISTINCT s.order_id)",
+      "snapshotDate": null
+    },
+    "stock_qty": {
+      "name": "指定日期库存余额",
+      "aliases": [
+        "库存余额",
+        "现存库存数量"
+      ],
+      "description": "仅有2026-10-31快照，必须用户给日期；按on_hand求和。",
+      "dimensions": [
+        "none",
+        "category"
+      ],
+      "tables": [
+        "inventory_balances"
+      ],
+      "source": "inventory_balances b",
+      "timeColumn": "b.snapshot_date",
+      "condition": "1=1",
+      "expression": "COALESCE(SUM(b.on_hand),0)",
+      "categoryJoin": " JOIN products p ON p.id=b.product_id",
+      "categoryExpression": "COALESCE(SUM(b.on_hand),0)",
+      "snapshotDate": "2026-10-31"
+    }
+  },
+  "ambiguousTerms": [
+    "销售额",
+    "GMV",
+    "订单量",
+    "净额"
+  ],
+  "dimensionDefinitions": {
+    "none": "合计",
+    "day": "按天",
+    "month": "按月",
+    "category": "按品类"
+  }
+}

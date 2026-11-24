@@ -1,0 +1,330 @@
+[
+  {
+    "id": "Q01",
+    "group": "query",
+    "question": "2026年9月1日至9月30日，按天统计支付成功订单实付金额。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A01"
+  },
+  {
+    "id": "Q02",
+    "group": "query",
+    "question": "2026年7月1日至9月30日，按月统计支付成功订单数。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "count",
+            "start": "2026-07-01",
+            "end": "2026-10-01",
+            "dimension": "month",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A02"
+  },
+  {
+    "id": "Q03",
+    "group": "query",
+    "question": "2026年10月31日的库存余额，按品类汇总。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "stock_qty",
+            "start": "2026-10-31",
+            "end": "2026-11-01",
+            "dimension": "category",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A03"
+  },
+  {
+    "id": "Q04",
+    "group": "query",
+    "question": "我想看2026年9月份，每天一共有多少实付金额？",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A01"
+  },
+  {
+    "id": "Q05",
+    "group": "query",
+    "question": "2026年9月10日至9月15日，每天实付金额是多少？",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-10",
+            "end": "2026-09-16",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "R01"
+  },
+  {
+    "id": "Q06",
+    "group": "query",
+    "question": "2026年9月1日至9月30日，键盘每天的实付金额是多少？",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": "键盘"
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "R02"
+  },
+  {
+    "id": "C01",
+    "group": "clarify",
+    "question": "按天统计实付金额。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "clarify",
+          "missing_fields": [
+            "date"
+          ]
+        }
+      },
+      {
+        "action": "reply",
+        "text": "统计2026年9月1日至9月30日。",
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A01"
+  },
+  {
+    "id": "C02",
+    "group": "clarify",
+    "question": "2026年9月1日至9月30日，每天的销售额是多少？",
+    "turns": [
+      {
+        "expect": {
+          "stage": "clarify",
+          "missing_fields": [
+            "metric"
+          ]
+        }
+      },
+      {
+        "action": "reply",
+        "text": "销售额这里指支付成功订单实付金额。",
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A01"
+  },
+  {
+    "id": "C03",
+    "group": "clarify",
+    "question": "每天键盘实付金额是多少？",
+    "turns": [
+      {
+        "expect": {
+          "stage": "clarify",
+          "missing_fields": [
+            "date"
+          ]
+        }
+      },
+      {
+        "action": "reply",
+        "text": "2026年9月1日至9月30日。",
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": "键盘"
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "R02"
+  },
+  {
+    "id": "C04",
+    "group": "clarify",
+    "question": "2026年9月1日至9月30日，按天统计支付成功订单实付金额。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "reply",
+        "text": "日期改为2026年9月10日至9月15日，其他条件保持原样。",
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-10",
+            "end": "2026-09-16",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "R01"
+  },
+  {
+    "id": "R01",
+    "group": "reject",
+    "question": "2026年10月30日的库存余额，按品类汇总。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "reject"
+        }
+      }
+    ]
+  },
+  {
+    "id": "R02",
+    "group": "reject",
+    "question": "2026年9月1日至9月30日，每天的广告点击率是多少？",
+    "turns": [
+      {
+        "expect": {
+          "stage": "reject"
+        }
+      }
+    ]
+  }
+]

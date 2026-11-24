@@ -1,0 +1,35 @@
+name: xiaozhe-text2sql-python
+services:
+  redis:
+    image: redis:8.0-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:16379:6379"
+    volumes:
+      - checkpoints:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+  mysql:
+    profiles: ["demo"]
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${T2S_DEMO_MYSQL_ROOT_PASSWORD:-}
+      MYSQL_DATABASE: text2sql_course
+      MYSQL_USER: course_reader
+      MYSQL_PASSWORD: ${T2S_MYSQL_PASSWORD:-}
+    ports:
+      - "127.0.0.1:${T2S_MYSQL_PORT:-13323}:3306"
+    volumes:
+      - mysql-demo:/var/lib/mysql
+      - ./infra/demo.sql:/docker-entrypoint-initdb.d/01-demo.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_PASSWORD\" mysql --protocol=TCP -h 127.0.0.1 -u course_reader -D text2sql_course -e 'SELECT id FROM orders LIMIT 1'"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+volumes:
+  mysql-demo:
+  checkpoints:

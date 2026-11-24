@@ -1,0 +1,85 @@
+import re
+from datetime import date, timedelta
+from typing import NamedTuple
+
+TODAY = date(2026, 10, 31)
+DAY = re.compile(r"(?:(\d{4})年)?(?:(\d{1,2})月)?(\d{1,2})日")
+ISO = re.compile(r"(?<!\d)\d{4}-\d{2}-\d{2}(?!\d)")
+MONTH = re.compile(r"(?:(\d{4})年)?(\d{1,2})月")
+QUARTER = re.compile(r"(?:(\d{4})年)?第([一二三四1-4])季度")
+YEAR = re.compile(r"(\d{4})年(?:全年|整年)")
+SEPARATORS = {"至", "到", "—", "~", "～", "-"}
+
+
+class DateRange(NamedTuple):
+    start: date
+    end: date
+
+
+def _move_month(value: date, delta: int) -> date:
+    year, month = divmod(value.year * 12 + value.month - 1 + delta, 12)
+    return date(year, month + 1, 1)
+
+
+def _endpoints(text: str, matches: list[re.Match], parse, separators: set[str]) -> list[date]:
+    if len(matches) > 2:
+        raise ValueError("支持一个连续区间")
+    if len(matches) == 2 and text[matches[0].end():matches[1].start()] not in separators:
+        raise ValueError("无法识别日期连接词")
+    dates = []
+    previous = TODAY
+    for match in matches:
+        previous = parse(match, previous)
+        dates.append(previous)
+    if dates[0] > dates[-1]:
+        raise ValueError("日期倒序")
+    return dates
+
+
+def parse_date_range(text: str) -> DateRange | None:
+    text = re.sub(r"\s+", "", text)
+    if re.search("日和|日、|日及|不要|排除|不含|不包括", text):
+        return None
+    try:
+        if matches := list(DAY.finditer(text)):
+            def day(match, previous):
+                year, month, number = match.groups()
+                return date(int(year or previous.year), int(month or previous.month), int(number))
+
+            dates = _endpoints(text, matches, day, SEPARATORS)
+            return DateRange(dates[0], dates[-1] + timedelta(days=1))
+        if matches := list(ISO.finditer(text)):
+            dates = _endpoints(text, matches, lambda match, _: date.fromisoformat(match[0]),
+                               {"至", "到", "/", "~", "～"})
+            return DateRange(dates[0], dates[-1] + timedelta(days=1))
+
+        words = {word for word in ("今天", "昨天", "本月", "上月") if word in text}
+        if "上个月" in text:
+            words.add("上月")
+        if "这个月" in text:
+            words.add("本月")
+        if len(words) > 1:
+            return None
+        if words:
+            word = words.pop()
+            if word.endswith("月"):
+                start = _move_month(TODAY, -1 if word == "上月" else 0)
+                return DateRange(start, _move_month(start, 1))
+            start = TODAY - timedelta(days=int(word == "昨天"))
+            return DateRange(start, start + timedelta(days=1))
+
+        if quarter := QUARTER.search(text):
+            year, part = quarter.groups()
+            number = "一二三四".find(part) + 1 or int(part)
+            start = date(int(year or TODAY.year), number * 3 - 2, 1)
+            return DateRange(start, _move_month(start, 3))
+        if matches := list(MONTH.finditer(text)):
+            dates = _endpoints(text, matches, lambda m, p: date(int(m[1] or p.year), int(m[2]), 1),
+                               SEPARATORS)
+            return DateRange(dates[0], _move_month(dates[-1], 1))
+        if year := YEAR.search(text):
+            start = date(int(year[1]), 1, 1)
+            return DateRange(start, _move_month(start, 12))
+    except (ValueError, OverflowError):
+        return None
+    return None

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>小哲 · 问数工作台</title><link rel="stylesheet" href="style.css?v=trace-2"><script src="trace.js?v=trace-2" defer></script><script src="app.js?v=trace-2" defer></script></head>
+<body>
+<aside class="sidebar"><a class="brand" href="/">小哲<span>DATA STUDIO</span></a><div class="sidebar-title">电商业务 · 问数 Agent</div><nav aria-label="工作区"><a class="active" href="#workspace">◈ 问数工作台</a><a href="#examples">◇ 课程示例</a></nav><div class="sidebar-note"><span class="dot"></span> 课程数据集<br><strong>2026 年 1—10 月</strong><p>每次查询使用一个指标，最多一个分组维度。金额单位：分。</p></div><footer>FastAPI + LangGraph<br>业务语义层 · Python 问数 Agent</footer></aside>
+<main id="workspace"><header><span>工作区 / 电商问数</span><button id="new-session" class="quiet">新建会话 ↗</button></header><div class="intro"><p class="eyebrow">ASK WITH CONTEXT</p><h1>把问题说清楚，<br>让数据回答你。</h1><p>先明确指标和时间，再核对确认卡。确认之后才会查询数据库。</p><span id="demo-banner" class="badge" hidden>教学模拟 · 固定响应 · 不调用模型和数据库</span></div>
+<div id="notice" role="status" aria-live="polite" hidden></div>
+<div class="workspace-grid"><section class="panel composer"><div class="panel-heading"><span class="step-number">01</span><h2>准备一个明确的问题</h2></div><form id="question-form"><div class="form-grid"><label>业务指标<select id="metric"><option value="paid">支付成功订单实付金额</option><option value="count">支付成功订单数</option><option value="net">实付减全部已完成退款（含跨月）</option><option value="shipped_orders">已发货订单数</option><option value="stock_qty">指定日期库存余额</option></select></label><label>分组方式<select id="dimension"></select></label><label>开始日期<input id="start" type="date" required value="2026-09-01"></label><label>结束日期（包含当天）<input id="end" type="date" required value="2026-09-30"></label></div><div class="composer-actions"><button type="button" id="build-question" class="secondary">生成明确问法</button><span>一次只问一个指标</span></div><label>你的问题<textarea id="question" rows="4" required>2026年9月1日至9月30日，按天统计支付成功订单实付金额。</textarea></label><div class="submit-row"><span id="connection-note">确认前不会执行 SQL</span><button id="ask" class="primary" type="submit">生成确认卡 <span>→</span></button></div></form></section>
+<section class="panel answer"><div class="panel-heading"><span class="step-number">02</span><h2>核对与确认</h2><span id="stage-badge" class="status-pill">等待提问</span></div><div id="empty-state" class="empty-state"><div class="outline-icon">✓</div><h3>把确认权留给你</h3><p>指标口径、日期区间、分组方式<br>会在这里逐项呈现。</p></div><div id="session-view" hidden><div id="reason" class="reason"></div><dl id="plan-card"></dl><ul id="warnings" class="warnings"></ul><form id="clarify-form" hidden><label id="choice-metric-label">请选择指标口径<select id="choice-metric"></select></label><div id="choice-dates" class="form-grid"><label>开始日期<input id="choice-start" type="date"></label><label>结束日期（包含当天）<input id="choice-end" type="date"></label></div><button class="primary" type="submit">提交选择</button></form><div id="confirm-actions" class="button-row" hidden><button id="confirm" class="primary">确认并查询</button><button id="cancel" class="secondary">取消</button></div><details id="edit-panel"><summary>修改问题 / 重新描述</summary><form id="reply-form"><label>补充或修改<textarea id="reply" rows="3"></textarea></label><button class="secondary" type="submit">重新生成确认卡</button></form></details><p id="session-meta" class="meta"></p>
+<details id="trace-panel" class="trace-panel" hidden>
+  <summary class="trace-summary">
+    <span class="trace-title">执行轨迹</span>
+    <span id="trace-stage" class="trace-stage"></span>
+    <span class="trace-chevron" aria-hidden="true"></span>
+  </summary>
+  <div class="trace-content">
+    <div class="trace-toolbar">
+      <button id="trace-refresh" class="trace-control" type="button">刷新轨迹</button>
+      <a id="trace-raw" class="trace-raw" target="_blank" rel="noopener">查看 JSON ↗</a>
+    </div>
+    <p id="trace-message" class="trace-message" role="status" hidden></p>
+    <p id="trace-history" class="trace-history" hidden>更早的记录已过期或被裁剪。</p>
+    <ol id="trace-events" class="trace-events" aria-label="执行时间线"></ol>
+    <button id="trace-more" class="trace-control" type="button" hidden>加载更多</button>
+  </div>
+</details>
+</div></section></div>
+<section id="result-panel" class="panel result" hidden><div class="panel-heading"><span class="step-number">03</span><h2>查询结果</h2><span id="result-unit" class="status-pill"></span><button id="download" class="quiet">下载 CSV ↓</button></div><div id="results" class="table-wrap"></div></section>
+<section id="examples"><div class="section-title"><h2>从一个明确的问题开始</h2><span>单指标 · 单维度</span></div><div class="examples"><button data-example="paid"><b>每日支付金额</b><span>9 月 · 按天查看实付金额 ↗</span></button><button data-example="count"><b>每月支付订单数</b><span>7—9 月 · 按月统计去重订单数 ↗</span></button><button data-example="stock_qty"><b>品类库存余额</b><span>10 月 31 日 · 按品类汇总 ↗</span></button></div></section><footer class="main-footer">合成数据用于课程练习 · 库存仅有 2026-10-31 快照 · 净额按支付订单归属，扣全部已完成退款</footer></main>
+</body></html>
