@@ -23,6 +23,7 @@ const tracePanel = (() => {
     approval_required: '等待确认',
     workflow_resumed: '继续处理会话',
     choice_applied: '已应用补充选项',
+    date_revision_applied: '已更新日期，保留其他条件',
     approval_accepted: '已确认查询',
     session_cancelled: '查询已取消',
     sql_compiled: '已准备查询语句',

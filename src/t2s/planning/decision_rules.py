@@ -1,5 +1,6 @@
+from t2s.planning.dates import parse_date_revision
 from t2s.planning.evidence import date_supported, metric_supported, valid_quotes
-from t2s.planning.models import Decision, EvidenceField, PartialPlan, Plan
+from t2s.planning.models import Decision, Evidence, EvidenceField, PartialPlan, Plan
 from t2s.planning.rules import normalize_plan, required_tables
 from t2s.sessions.models import Choice, Session
 
@@ -67,6 +68,25 @@ def _reject(session: Session, decision: Decision, reason: str) -> None:
     session.stage = "reject"
     session.reason = reason
     session.decision = decision.model_copy(update={"status": "reject", "reason": reason})
+
+
+def apply_date_revision(session: Session, text: str) -> bool:
+    decision = session.decision
+    # 只继承自由问数中已经校验过的计划和证据。
+    if session.stage != "confirm" or not session.messages or decision is None or decision.plan is None:
+        return False
+    revision = parse_date_revision(text)
+    if revision is None:
+        return False
+
+    span, quote = revision
+    evidence = {**decision.evidence, "date": [Evidence(message=len(session.messages), quote=quote)]}
+    plan = decision.plan.model_copy(update={"start": span.start, "end": span.end, "end_inclusive": False})
+    session.messages.append(text)
+    # 新文字日期用原话校验，之前点选且保持不变的指标继续有效。
+    session.choice = session.choice.model_copy(update={"start": None, "end": None})
+    session.decision = decision.model_copy(update={"plan": plan, "evidence": evidence})
+    return True
 
 
 def apply_choice(session: Session, choice: Choice, catalog: dict) -> None:

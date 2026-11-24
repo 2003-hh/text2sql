@@ -10,7 +10,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
 from t2s.observability.trace import TraceRecorder
-from t2s.planning.decision_rules import apply_choice, validate_decision
+from t2s.planning.decision_rules import apply_choice, apply_date_revision, validate_decision
 from t2s.planning.models import Plan
 from t2s.planning.planner import Planner, PlannerError
 from t2s.query.compiler import CompiledQuery, compile_sql
@@ -96,15 +96,20 @@ def build_graph(saver: BaseCheckpointSaver, catalog: dict, execute: Execute, cla
             session.stage = "checking"
             record("choice_applied", session, config, once_per_revision=True)
         else:
-            # 文字修改保留原有历史和明确点选，由最新消息覆盖旧语义。
+            assert reply.text is not None
+            text = reply.text.strip()
+            if apply_date_revision(session, text):
+                session.stage = "checking"
+                record("date_revision_applied", session, config, once_per_revision=True)
+                return {"session": session.model_dump(mode="json")}
+            # 其他文字修改保留原有历史和明确点选，由最新消息覆盖旧语义。
             if session.choice.metric is not None:
                 metric = catalog["metrics"][session.choice.metric]["name"]
                 session.messages.append(f"此前点选的指标：{metric}")
             if session.choice.start is not None and session.choice.end is not None:
                 inclusive_end = session.choice.end - timedelta(days=1)
                 session.messages.append(f"此前点选的日期：{session.choice.start}至{inclusive_end}")
-            assert reply.text is not None
-            session.messages.append(reply.text.strip())
+            session.messages.append(text)
             session.choice = Choice()
             session.warnings = []
             session.stage = "pending"

@@ -10,6 +10,19 @@ QUARTER = re.compile(r"(?:(\d{4})年)?第([一二三四1-4])季度")
 YEAR = re.compile(r"(\d{4})年(?:全年|整年)")
 SEPARATORS = {"至", "到", "—", "~", "～", "-"}
 
+# 匹配整句话。首个日期明确年份，后续端点可沿用同一区间的年月。
+_EXPLICIT_DATE = (
+    r"\d{4}年\s*\d{1,2}月(?:\s*\d{1,2}日"
+    r"(?:\s*[至到—~～-]\s*(?:(?:\d{4}年\s*)?\d{1,2}月\s*)?\d{1,2}日)?)?"
+    r"|\d{4}-\d{2}-\d{2}(?:\s*[至到/~～]\s*\d{4}-\d{2}-\d{2})?"
+)
+_DATE_REVISION = re.compile(
+    r"(?:只(?:把)?|仅(?:把)?)?(?:查询)?(?:日期|时间范围)"
+    r"(?:改为|改成|改到|调整为|设为)\s*"
+    rf"(?P<date>{_EXPLICIT_DATE})"
+    r"\s*(?:[，,；;]\s*其(?:他|它)(?:条件)?(?:保持原样|保持不变|不变|照旧))?[。.!！]?"
+)
+
 
 class DateRange(NamedTuple):
     start: date
@@ -83,3 +96,12 @@ def parse_date_range(text: str) -> DateRange | None:
     except (ValueError, OverflowError):
         return None
     return None
+
+
+def parse_date_revision(text: str) -> tuple[DateRange, str] | None:
+    match = _DATE_REVISION.fullmatch(text.strip())
+    if match is None:
+        return None
+    quote = match["date"]
+    span = parse_date_range(quote)
+    return (span, quote) if span is not None else None

@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 
+import pytest
 from fastapi.testclient import TestClient
 from langgraph.checkpoint.memory import InMemorySaver
 
@@ -145,4 +146,80 @@ def test_missing_table_suggestions_do_not_bypass_evidence():
     assert session["stage"] == "clarify"
     assert session["decision"]["missing_fields"] == ["metric"]
     assert session["decision"]["tables"] == ["orders"]
+    executor.assert_not_called()
+
+
+def test_explicit_date_revision_preserves_validated_conditions_without_planner():
+    client, planner, executor = setup(candidate(category="键盘"))
+    with client:
+        session = client.post("/sessions", json={
+            "question": "2026年9月每天键盘实付金额是多少？"
+        }).json()
+        url = f"/sessions/{session['id']}/respond"
+        assert session["stage"] == "confirm"
+        revised = client.post(url, json={
+            "revision": 0, "action": "reply",
+            "text": "只把日期改成 2026年9月10日到15日，其他照旧。"
+        }).json()
+
+        assert (revised["stage"], revised["revision"], revised["executions"]) == ("confirm", 1, 0)
+        assert revised["decision"]["plan"] == {
+            **session["decision"]["plan"], "start": "2026-09-10", "end": "2026-09-16",
+        }
+        evidence = revised["decision"]["evidence"]
+        for field in ("metric", "dimension", "category"):
+            assert evidence[field] == session["decision"]["evidence"][field]
+        assert evidence["date"] == [{"message": 1, "quote": "2026年9月10日到15日"}]
+        assert client.post(url, json={"revision": 0, "action": "confirm"}).status_code == 409
+        planner.assert_called_once()
+        executor.assert_not_called()
+
+        done = client.post(url, json={"revision": 1, "action": "confirm"}).json()
+        assert (done["stage"], done["executions"]) == ("done", 1)
+        assert [str(value) for value in executor.call_args.args[0].params] == [
+            "2026-09-10", "2026-09-16", "键盘",
+        ]
+
+
+@pytest.mark.parametrize("text", [
+    "日期改为上次那几天，其他条件照旧。",
+    "日期改为2026年9月10日至9月15日或2026年9月18日至9月20日。",
+    "日期改为9月10日到15日。",
+])
+def test_unhandled_date_revisions_keep_using_planner(text):
+    client, planner, executor = setup(candidate())
+    unclear = candidate(start=None, end=None)
+    unclear["status"] = "clarify"
+    unclear["missing_fields"] = ["date"]
+    planner.side_effect = [Decision.model_validate(candidate()), Decision.model_validate(unclear)]
+    with client:
+        question = "2026年9月每天实付金额是多少？"
+        session = client.post("/sessions", json={"question": question}).json()
+        assert session["stage"] == "confirm"
+        updated = client.post(f"/sessions/{session['id']}/respond", json={
+            "revision": 0, "action": "reply", "text": text,
+        }).json()
+        assert updated["stage"] == "clarify"
+        assert updated["decision"]["missing_fields"] == ["date"]
+        assert planner.call_args.args[0] == [question, text]
+    executor.assert_not_called()
+
+
+def test_date_and_metric_changes_replace_both_values():
+    client, planner, executor = setup(candidate())
+    changed = candidate(start="2026-09-10", end="2026-09-15")
+    changed["plan"]["metric"] = "count"
+    changed["evidence"]["metric"] = [{"message": 1, "quote": "支付成功订单数"}]
+    changed["evidence"]["date"] = [{"message": 1, "quote": "2026年9月10日到15日"}]
+    planner.side_effect = [Decision.model_validate(candidate()), Decision.model_validate(changed)]
+    with client:
+        session = client.post("/sessions", json={"question": "2026年9月每天实付金额"}).json()
+        revised = client.post(f"/sessions/{session['id']}/respond", json={
+            "revision": 0, "action": "reply",
+            "text": "日期改为2026年9月10日到15日，同时改成支付成功订单数。",
+        }).json()
+    assert (revised["stage"], revised["revision"], revised["executions"]) == ("confirm", 1, 0)
+    assert revised["decision"]["plan"]["metric"] == "count"
+    assert revised["decision"]["plan"]["end"] == "2026-09-16"
+    assert planner.call_count == 2
     executor.assert_not_called()
