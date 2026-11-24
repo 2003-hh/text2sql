@@ -98,15 +98,24 @@ $record = '.run/fixed-plan-local.json'
 
 SQL 由受控课程目录生成，并用 PyMySQL 的占位符传入日期和品类。
 
-## 自然语言网页
+## 网页查数
 
-打开 [问数页面](http://127.0.0.1:18330/)。Python 项目独立维护从 V16 复制的页面资源，位于 `src/t2s/resources/web`。FastAPI 同源提供网页与 API，使用本机 Ollama 生成候选计划。模型默认 `qwen3.5:9b`。可在 `.env` 设置 `T2S_OLLAMA_URL`、`T2S_OLLAMA_MODEL` 和 `T2S_OLLAMA_TIMEOUT`。
+打开 [问数页面](http://127.0.0.1:18330/)。表单查数直接提交结构化计划，Ollama 不可用时仍可生成确认卡并查数。自由问数和确认卡里的文字修改使用模型。Python 项目独立维护从 V16 复制的页面资源，位于 `src/t2s/resources/web`。FastAPI 同源提供网页与 API，使用本机 Ollama 生成候选计划。模型默认 `qwen3.5:9b`。可在 `.env` 设置 `T2S_OLLAMA_URL`、`T2S_OLLAMA_MODEL` 和 `T2S_OLLAMA_TIMEOUT`。
 
 `POST /sessions` 接受 `{"question":"2026年9月每天实付金额是多少？"}` 或原有的 `{"plan":{...}}`，一次只传一种。结构化计划无需调用模型。自然语言的原话依据由程序核验，通过后才进入待确认。问「2026 年 9 月每天销售额」可观察口径澄清。问「每天键盘实付金额是多少」并点选日期，可观察原分组和筛选是否保留。
 
 接着核对确认卡，确认后查看结果或导出 CSV。刷新页面会按同一会话 ID 读取已保存的状态与结果。`GET /choices` 提供指标点选文案。回复接口仍使用卡片版本，支持 `choose`、`reply`、`confirm` 和 `cancel`。
 
 如需重跑浏览器验收，将 Playwright 和 Chromium 装到本地测试环境后运行 `python tests/acceptance/browser_flow.py`。脚本使用真实模型与数据库，覆盖补日期、保存条件、刷新、旧卡拦截、确认和 CSV 数值核对。验收截图和 CSV 写入 `.run/browser`。
+
+如需复跑无需模型的浏览器验收，在单独的 PowerShell 中启动测试服务：
+
+```powershell
+$env:T2S_OLLAMA_URL = 'http://127.0.0.1:18332' # 确保该端口没有监听
+.\.venv\Scripts\python.exe -m uvicorn t2s.main:create_app --factory --app-dir src --host 127.0.0.1 --port 18331
+```
+
+另开 PowerShell，设置 `$env:PYTHONPATH = (Join-Path $PWD 'src')`，运行 `python tests/acceptance/browser_structured.py`（使用装有 Playwright 的 Python）。脚本逐行比对三道标准题的独立 SQL 和 CSV，也验证取消、重复确认和模型不可达时的自由问数反馈。截图和 CSV 写入 `.run/browser-structured`。
 
 ## 查看执行轨迹
 

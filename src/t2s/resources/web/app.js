@@ -10,7 +10,6 @@ function dayOffset(value, days) {
   if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0,10)!==value) throw new Error('日期无效。');
   date.setUTCDate(date.getUTCDate()+days); return date.toISOString().slice(0,10);
 }
-function cnDate(value) { const [y,m,d]=value.split('-').map(Number);return `${y}年${m}月${d}日`; }
 function notice(text) { $('notice').textContent=text;$('notice').hidden=!text; }
 function setBusy(value) { busy=value;document.querySelectorAll('button').forEach(b=>b.disabled=value);$('connection-note').textContent=value?'正在处理，请稍候…':'确认前不会执行 SQL'; }
 async function request(path, body) {
@@ -33,13 +32,11 @@ function updateDimensions() {
   $('dimension').value=allowed[metric].includes(previous)?previous:allowed[metric][0];
   if(metric==='stock_qty') {$('start').value='2026-10-31';$('end').value='2026-10-31';}
 }
-function buildQuestion() {
+function buildPlan() {
   const metric=$('metric').value, start=$('start').value, end=$('end').value, group=$('dimension').value;
   dayOffset(start,0);dayOffset(end,0);if(start>end) throw new Error('结束日期不能早于开始日期。');
   if(metric==='stock_qty' && (start!=='2026-10-31'||end!=='2026-10-31')) throw new Error('课程库存使用 2026-10-31 快照，请选择这一天。');
-  const period=start===end?cnDate(start):`${cnDate(start)}至${cnDate(end)}`;
-  const phrasing={paid:'支付成功订单实付金额',count:'成功付款订单去重数量',net:'支付订单净额，采用订单实付减这些订单全部已完成退款，含跨月退款且不限制退款时间',shipped_orders:'已发货订单数，按发货日期归属，已发货和已送达都计，同订单去重',stock_qty:'库存余额'};
-  $('question').value=`${period}，${group==='none'?'汇总':dimensions[group]+'统计'}${phrasing[metric]}。`;
+  return { metric, start, end, dimension: group, end_inclusive: true };
 }
 function entry(key,value) {const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=key;dd.textContent=value;row.append(dt,dd);return row;}
 function render() {
@@ -83,7 +80,14 @@ function renderResults() {
 }
 async function respond(payload) {const snapshot=session;if(!snapshot)throw new Error('请先提问。');session=await request('/sessions/'+encodeURIComponent(snapshot.id)+'/respond',{revision:snapshot.revision,...payload});render();}
 $('metric').addEventListener('change',updateDimensions);
-$('build-question').addEventListener('click',()=>{try{buildQuestion();notice('');}catch(e){notice(e.message);}});
+$('plan-form').addEventListener('submit', event => {
+  event.preventDefault();
+  perform(async () => {
+    const plan = buildPlan();
+    session = await request('/sessions', { plan });
+    render();
+  });
+});
 $('question-form').addEventListener('submit',event=>{event.preventDefault();perform(async()=>{const question=$('question').value.trim();if(!question)throw new Error('请填写问题。');session=await request('/sessions',{question});render();});});
 $('confirm').addEventListener('click',()=>perform(()=>respond({action:'confirm'})));
 $('cancel').addEventListener('click',()=>perform(()=>respond({action:'cancel'})));
@@ -96,12 +100,12 @@ $('clarify-form').addEventListener('submit',event=>{event.preventDefault();perfo
 });});
 $('new-session').addEventListener('click',()=>{session=null;localStorage.removeItem('xiaozhe.session');notice('');render();});
 const examples={paid:['paid','day','2026-09-01','2026-09-30'],count:['count','month','2026-07-01','2026-09-30'],stock_qty:['stock_qty','category','2026-10-31','2026-10-31']};
-document.querySelectorAll('[data-example]').forEach(button=>button.addEventListener('click',()=>{const[m,d,s,e]=examples[button.dataset.example];$('metric').value=m;updateDimensions();$('dimension').value=d;$('start').value=s;$('end').value=e;buildQuestion();$('question').focus();}));
+document.querySelectorAll('[data-example]').forEach(button=>button.addEventListener('click',()=>{const[m,d,s,e]=examples[button.dataset.example];$('metric').value=m;updateDimensions();$('dimension').value=d;$('start').value=s;$('end').value=e;$('submit-plan').focus();}));
 $('download').addEventListener('click',()=>{
   const escape=value=>'"'+String(value??'').replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"';
   const headings=session.decision.plan.dimension==='none'?['数值']:['分组','数值'];
   const csv='\ufeff'+[headings,...session.rows].map(row=>row.map(escape).join(',')).join('\r\n');
-  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),link=document.createElement('a');link.href=url;link.download='小哲问数结果.csv';link.click();URL.revokeObjectURL(url);
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),link=document.createElement('a');link.href=url;link.download='T2S 查询结果.csv';link.click();URL.revokeObjectURL(url);
 });
 (async()=>{updateDimensions();$('dimension').value='day';
   try{const choices=await request('/choices');$('choice-metric').replaceChildren(...Object.entries(choices).map(([key,value])=>new Option(value,key)));const id=localStorage.getItem('xiaozhe.session');if(id){session=await request('/sessions/'+encodeURIComponent(id));render();}}

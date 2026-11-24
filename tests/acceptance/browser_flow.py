@@ -21,6 +21,7 @@ def main() -> None:
         with page.expect_response(lambda r: r.url.endswith("/sessions") and r.request.method == "POST",
                                   timeout=125_000) as created:
             page.locator("#ask").click()
+        assert created.value.request.post_data_json == {"question": "每天键盘实付金额是多少？"}
         pending = created.value.json()
         assert pending.get("stage") == "clarify", pending.get("reason")
         assert pending["executions"] == 0

@@ -63,7 +63,7 @@ const tracePanel = (() => {
     already_claimed: '该版本已取得执行权，已阻止重复查询',
     query_execution_failed: '执行器返回查询错误',
   };
-  const sourceNames = { question: '自然语言提问', plan: '固定查询计划', checkpoint: '已保存的会话' };
+  const sourceNames = { question: '自然语言提问', plan: '直接提交查询计划', checkpoint: '已保存的会话' };
   const summaryFields = {
     source: ['数据来源', '说明当前会话从哪里创建，或本次读取从哪里恢复。', sourceNames],
     metric: ['指标口径', '记录计划采用的业务指标代码，例如 paid 代表支付金额。'],
