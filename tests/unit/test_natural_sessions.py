@@ -111,3 +111,38 @@ def test_schema_with_invalid_evidence_keys_cannot_be_used():
         response = client.post("/sessions", json={"question": "2026年9月每天实付金额"})
         assert response.json()["stage"] == "clarify"
     executor.assert_not_called()
+
+
+def test_backend_derives_tables_from_category_filter():
+    result = candidate(category="键盘")
+    result["tables"] = ["orders", "unknown_table"]
+    client, _, executor = setup(result)
+    with client:
+        session = client.post("/sessions", json={
+            "question": "2026年9月每天键盘实付金额是多少？"
+        }).json()
+        assert session["stage"] == "confirm"
+        assert session["decision"]["tables"] == ["order_items", "orders", "products"]
+        executor.assert_not_called()
+        response = client.post(f"/sessions/{session['id']}/respond",
+                               json={"revision": session["revision"], "action": "confirm"})
+        assert response.json()["stage"] == "done"
+        query = executor.call_args.args[0]
+        assert "JOIN order_items" in query.text
+        assert "JOIN products" in query.text
+        assert "unknown_table" not in query.text
+        assert query.params[-1] == "键盘"
+
+
+def test_missing_table_suggestions_do_not_bypass_evidence():
+    result = candidate(quote="销售额")
+    result["tables"] = []
+    client, _, executor = setup(result)
+    with client:
+        session = client.post("/sessions", json={
+            "question": "2026年9月每天销售额是多少？"
+        }).json()
+    assert session["stage"] == "clarify"
+    assert session["decision"]["missing_fields"] == ["metric"]
+    assert session["decision"]["tables"] == ["orders"]
+    executor.assert_not_called()

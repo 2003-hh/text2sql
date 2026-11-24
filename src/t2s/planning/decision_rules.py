@@ -28,13 +28,9 @@ def validate_decision(session: Session, catalog: dict) -> None:
     except ValueError as error:
         _reject(session, decision, str(error))
         return
-    selected = set(decision.tables)
-    required = set(required_tables(plan, catalog))
-    if not selected.issubset(catalog["models"]) or not required.issubset(selected):
-        _reject(session, decision, "所选表未知或缺少必要业务表")
-        return
-
-    session.warnings = ["目录选择含冗余表：" + "、".join(sorted(selected - required))] if selected - required else []
+    # SQL is compiled from the catalog, so use the same plan to derive the display tables.
+    decision = decision.model_copy(update={"tables": required_tables(plan, catalog)})
+    session.warnings = []
     evidence = decision.evidence
     if session.choice.metric != plan.metric and not metric_supported(
         session.messages, evidence.get("metric", []), plan.metric, catalog["ambiguousTerms"]
