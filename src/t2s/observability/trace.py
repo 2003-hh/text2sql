@@ -28,6 +28,7 @@ _EVENT_TYPES = {
     "workflow_resumed": ("human", "recorded"),
     "choice_applied": ("human", "success"),
     "date_revision_applied": ("human", "success"),
+    "metric_reply_applied": ("human", "success"),
     "approval_accepted": ("human", "success"),
     "session_cancelled": ("human", "success"),
     "sql_compiled": ("query", "success"),

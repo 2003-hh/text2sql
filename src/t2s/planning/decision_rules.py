@@ -1,5 +1,5 @@
 from t2s.planning.dates import parse_date_revision
-from t2s.planning.evidence import date_supported, metric_supported, valid_quotes
+from t2s.planning.evidence import date_supported, metric_supported, resolve_metric_reply, valid_quotes
 from t2s.planning.models import Decision, Evidence, EvidenceField, PartialPlan, Plan
 from t2s.planning.rules import normalize_plan, required_tables
 from t2s.sessions.models import Choice, Session
@@ -68,6 +68,27 @@ def _reject(session: Session, decision: Decision, reason: str) -> None:
     session.stage = "reject"
     session.reason = reason
     session.decision = decision.model_copy(update={"status": "reject", "reason": reason})
+
+
+def apply_metric_reply(session: Session, text: str, catalog: dict) -> bool:
+    decision = session.decision
+    if session.stage != "clarify" or decision is None or "metric" not in decision.missing_fields:
+        return False
+    metric = resolve_metric_reply(text, catalog)
+    if metric is None:
+        return False
+
+    plan = (decision.plan or PartialPlan()).model_copy(update={"metric": metric})
+    missing = [field for field in decision.missing_fields if field != "metric"]
+    evidence = {**decision.evidence, "metric": [Evidence(message=len(session.messages), quote=text)]}
+    session.messages.append(text)
+    session.choice = session.choice.model_copy(update={"metric": None})
+    session.decision = decision.model_copy(update={
+        "status": "query",
+        "plan": plan, "tables": required_tables(plan, catalog),
+        "evidence": evidence, "missing_fields": missing,
+    })
+    return True
 
 
 def apply_date_revision(session: Session, text: str) -> bool:

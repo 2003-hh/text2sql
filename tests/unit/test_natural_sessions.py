@@ -97,10 +97,10 @@ def test_reply_passes_original_and_new_messages_to_planner():
                                Decision.model_validate(by_paid)]
         session = client.post("/sessions", json={"question": question}).json()
         response = client.post(f"/sessions/{session['id']}/respond",
-                               json={"revision": 0, "action": "reply", "text": "按实付金额算"})
+                               json={"revision": 0, "action": "reply", "text": "按实付金额算，日期和分组照旧。"})
         assert response.json()["stage"] == "confirm"
-        assert response.json()["messages"] == [question, "按实付金额算"]
-        assert planner.call_args.args[0] == [question, "按实付金额算"]
+        assert response.json()["messages"] == [question, "按实付金额算，日期和分组照旧。"]
+        assert planner.call_args.args[0] == [question, "按实付金额算，日期和分组照旧。"]
     executor.assert_not_called()
 
 
@@ -221,5 +221,77 @@ def test_date_and_metric_changes_replace_both_values():
     assert (revised["stage"], revised["revision"], revised["executions"]) == ("confirm", 1, 0)
     assert revised["decision"]["plan"]["metric"] == "count"
     assert revised["decision"]["plan"]["end"] == "2026-09-16"
+    assert planner.call_count == 2
+    executor.assert_not_called()
+
+
+@pytest.mark.parametrize("reply", [
+    "销售额这里指支付成功订单实付金额。",
+    "按实付金额算",
+])
+def test_explicit_metric_reply_overrides_candidate_and_keeps_other_conditions(reply):
+    initial = candidate("销售额", category="键盘")
+    initial["plan"]["metric"] = "count"
+    client, planner, executor = setup(initial)
+    with client:
+        pending = client.post("/sessions", json={"question": "2026年9月每天键盘销售额是多少？"}).json()
+        assert pending["stage"] == "clarify"
+        assert pending["decision"]["missing_fields"] == ["metric"]
+        url = f"/sessions/{pending['id']}/respond"
+        revised = client.post(url, json={"revision": 0, "action": "reply", "text": reply}).json()
+
+        assert (revised["stage"], revised["revision"], revised["executions"]) == ("confirm", 1, 0)
+        assert revised["decision"]["plan"] == {
+            "metric": "paid", "start": "2026-09-01", "end": "2026-10-01",
+            "end_inclusive": False, "dimension": "day", "category": "键盘",
+        }
+        original_evidence = pending["decision"]["evidence"]
+        assert revised["decision"]["evidence"] == {
+            **original_evidence, "metric": [{"message": 1, "quote": reply}],
+        }
+        assert client.post(url, json={"action": "confirm", "revision": 0}).status_code == 409
+        planner.assert_called_once()
+        executor.assert_not_called()
+
+        done = client.post(url, json={"action": "confirm", "revision": 1}).json()
+        assert (done["stage"], done["executions"]) == ("done", 1)
+        executor.assert_called_once()
+
+
+def test_metric_reply_does_not_fill_missing_date():
+    initial = candidate("销售额", start=None, end=None)
+    initial["plan"]["metric"] = None
+    client, planner, executor = setup(initial)
+    with client:
+        pending = client.post("/sessions", json={"question": "每天的销售额是多少？"}).json()
+        assert set(pending["decision"]["missing_fields"]) == {"metric", "date"}
+        revised = client.post(f"/sessions/{pending['id']}/respond", json={
+            "revision": 0, "action": "reply", "text": "按实付金额算",
+        }).json()
+    assert revised["stage"] == "clarify"
+    assert revised["decision"]["missing_fields"] == ["date"]
+    assert revised["decision"]["plan"]["metric"] == "paid"
+    planner.assert_called_once()
+    executor.assert_not_called()
+
+
+@pytest.mark.parametrize("reply", [
+    "实付金额或者退款后的净额都行。",
+    "实付金额还是退款后的净额都行。",
+    "不按实付金额。",
+])
+def test_ambiguous_or_negated_metric_reply_does_not_confirm(reply):
+    initial = candidate("销售额")
+    second = candidate()
+    second["evidence"]["metric"] = [{"message": 1, "quote": "实付金额"}]
+    client, planner, executor = setup(initial)
+    planner.side_effect = [Decision.model_validate(initial), Decision.model_validate(second)]
+    with client:
+        pending = client.post("/sessions", json={"question": "2026年9月每天销售额是多少？"}).json()
+        updated = client.post(f"/sessions/{pending['id']}/respond", json={
+            "revision": 0, "action": "reply", "text": reply,
+        }).json()
+    assert updated["stage"] == "clarify"
+    assert updated["decision"]["missing_fields"] == ["metric"]
     assert planner.call_count == 2
     executor.assert_not_called()

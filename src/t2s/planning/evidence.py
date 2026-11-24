@@ -32,6 +32,28 @@ def explicit_metric(text: str) -> str | None:
     return None
 
 
+def resolve_metric_reply(text: str, catalog: dict) -> str | None:
+    """完整回复必须能归到目录中的唯一指标，附带其他条件时交回规划器。"""
+    value = text.strip().rstrip("。.!！").strip()
+    if definition := re.fullmatch(r"(.+?)(?:这里)?(?:是指|指的是|指|就是|是)\s*(.+)", value):
+        term, value = definition.groups()
+        if term.strip().casefold() not in {term.casefold() for term in catalog["ambiguousTerms"]}:
+            return None
+    elif choice := re.fullmatch(r"按\s*(.+?)\s*(?:算|统计)", value):
+        value = choice[1]
+
+    alias = value.strip().casefold()
+    matches = [
+        metric for metric, entry in catalog["metrics"].items()
+        if alias in {name.casefold() for name in [entry["name"], *entry["aliases"]]}
+    ]
+    if len(matches) != 1:
+        return None
+    metric = matches[0]
+    evidence = [Evidence(message=0, quote=text)]
+    return metric if metric_supported([text], evidence, metric, catalog["ambiguousTerms"]) else None
+
+
 def metric_supported(messages: list[str], evidence: list[Evidence], metric: str, terms: list[str]) -> bool:
     if not valid_quotes(messages, evidence):
         return False
@@ -41,7 +63,10 @@ def metric_supported(messages: list[str], evidence: list[Evidence], metric: str,
         ambiguous = any(term.casefold() in text.casefold() for term in terms)
         if not ambiguous and explicit is None and not re.search("实付.*(?:扣|减).*退款", text):
             continue
-        if re.search("不是|并非|不要按|不按|而非|或者", text):
+        if re.search(
+            r"不是|并非|不要按|不按|而非|或者|"
+            r"(?:还是|或是?)\s*(?:按|用)?(?:支付|实付|退款|净额|已发货|库存|订单)", text
+        ):
             return False
         return explicit == metric and any(item.message == index for item in evidence)
     return False
