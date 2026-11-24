@@ -17,7 +17,7 @@ from t2s.infrastructure.mysql import check_mysql
 from t2s.infrastructure.redis import check_redis, redis_client
 from t2s.observability.store import RedisTraceStore
 from t2s.observability.trace import TraceRecorder
-from t2s.planning.planner import build_planner
+from t2s.planning.planner import Planner, build_planner
 from t2s.query.executor import execute_query
 from t2s.sessions.service import SessionService
 from t2s.settings import Settings
@@ -29,6 +29,7 @@ def create_app(
     *,
     probes: Mapping[str, Probe] | None = None,
     sessions: Callable[[], SessionService] | None = None,
+    planner_factory: Callable[[Settings, dict], Planner] = build_planner,
 ) -> FastAPI:
     if probes is None:
         config = settings if settings is not None else Settings()
@@ -50,7 +51,7 @@ def create_app(
                     service = SessionService(
                         create_checkpointer(redis), catalog,
                         partial(execute_query, settings=config), claim,
-                        planner=build_planner(config, catalog), trace=trace,
+                        planner=planner_factory(config, catalog), trace=trace,
                     )
                 return service
 

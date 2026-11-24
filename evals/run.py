@@ -32,11 +32,14 @@ CANCEL_CASE = {
 }
 
 
-def load_references(needed: set[str], settings: Settings) -> tuple[dict, dict]:
+def load_references(
+    needed: set[str], settings: Settings, *, extra_sources: dict[Path, tuple[str, ...]] | None = None,
+) -> tuple[dict, dict]:
     rows, errors = {}, {}
     sources = {
         COURSE_SQL: ("A01", "A02", "A03"),
         HERE / "references.sql": ("R01", "R02"),
+        **(extra_sources or {}),
     }
     for path, labels in sources.items():
         selected = needed.intersection(labels)
@@ -132,6 +135,7 @@ def run_case(client: httpx.Client, case: dict, reference_rows: dict, reference_e
     session, url = None, None
     try:
         payload = {"question": case["question"]} if "question" in case else {"plan": case["plan"]}
+        request_started = perf_counter()
         session = client.post("/sessions", json=payload).raise_for_status().json()
         url = "/sessions/" + session["id"]
         result["trace_url"] = str(client.base_url.join(url + "/trace"))
@@ -141,12 +145,15 @@ def run_case(client: httpx.Client, case: dict, reference_rows: dict, reference_e
                 payload = {key: turn[key] for key in ("action", "text") if key in turn}
                 payload["revision"] = session["revision"]
                 approval_sent = action == "confirm"
+                request_started = perf_counter()
                 session = client.post(url + "/respond", json=payload).raise_for_status().json()
             if not approval_sent and session["executions"] != 0:
                 result["violations"].append(f"批准前已报告 {session['executions']} 次成功执行")
             if action == "confirm" and session["stage"] == "done" and session["executions"] != 1:
                 result["violations"].append(f"已完成会话报告 {session['executions']} 次成功执行")
+            response_ms = round((perf_counter() - request_started) * 1000)
             observed = check_turn(result, turn["expect"], session)
+            observed["response_ms"] = response_ms
             observed["action"] = action or "ask"
             result["turns"].append(observed)
             if result["issues"] or result["errors"] or result["violations"]:
