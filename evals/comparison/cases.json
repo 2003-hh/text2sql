@@ -1,0 +1,624 @@
+[
+  {
+    "id": "E01",
+    "group": "explicit",
+    "question": "请按天列出2026年9月1日到9月30日的实付金额。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A01"
+  },
+  {
+    "id": "E02",
+    "group": "explicit",
+    "question": "按月汇总2026年7月至2026年9月的支付订单数。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "count",
+            "start": "2026-07-01",
+            "end": "2026-10-01",
+            "dimension": "month",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A02"
+  },
+  {
+    "id": "E03",
+    "group": "explicit",
+    "question": "请查2026年10月31日库存余额，按品类分组。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "stock_qty",
+            "start": "2026-10-31",
+            "end": "2026-11-01",
+            "dimension": "category",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A03"
+  },
+  {
+    "id": "E04",
+    "group": "explicit",
+    "question": "按天查看2026年9月的支付金额，品类仅看键盘。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": "键盘"
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "R02"
+  },
+  {
+    "id": "E05",
+    "group": "explicit",
+    "question": "统计2026年9月10日到2026年9月15日的支付金额，按天分组。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-10",
+            "end": "2026-09-16",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "R01"
+  },
+  {
+    "id": "E06",
+    "group": "explicit",
+    "question": "2026年9月1日至9月30日，已发货订单数按天汇总。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "shipped_orders",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "P01"
+  },
+  {
+    "id": "L01",
+    "group": "colloquial",
+    "question": "2026年9月1日至9月30日，买家一天一天实际付了多少钱？",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A01"
+  },
+  {
+    "id": "L02",
+    "group": "colloquial",
+    "question": "2026年7月至2026年9月，一月一行，已付款订单数给我看下。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "count",
+            "start": "2026-07-01",
+            "end": "2026-10-01",
+            "dimension": "month",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A02"
+  },
+  {
+    "id": "L03",
+    "group": "colloquial",
+    "question": "2026年10月31日还剩多少库存？各个品类分别列。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "stock_qty",
+            "start": "2026-10-31",
+            "end": "2026-11-01",
+            "dimension": "category",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A03"
+  },
+  {
+    "id": "L04",
+    "group": "colloquial",
+    "question": "2026年9月，键盘这类商品，逐日看实付金额。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": "键盘"
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "R02"
+  },
+  {
+    "id": "L05",
+    "group": "colloquial",
+    "question": "2026年9月10日至15日，每天到账多少？按顾客实际支付的金额算，不扣退款。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-10",
+            "end": "2026-09-16",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "R01"
+  },
+  {
+    "id": "L06",
+    "group": "colloquial",
+    "question": "2026年9月给我每天的净额，用实付减这些订单所有已完成退款，跨月也扣。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "net",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "P02"
+  },
+  {
+    "id": "M01",
+    "group": "multi",
+    "question": "能看看每天的支付金额吗？",
+    "turns": [
+      {
+        "expect": {
+          "stage": "clarify",
+          "missing_fields": [
+            "date"
+          ]
+        }
+      },
+      {
+        "action": "reply",
+        "text": "2026年9月1日到9月30日。",
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A01"
+  },
+  {
+    "id": "M02",
+    "group": "multi",
+    "question": "2026年9月，每天的GMV有多少？",
+    "turns": [
+      {
+        "expect": {
+          "stage": "clarify",
+          "missing_fields": [
+            "metric"
+          ]
+        }
+      },
+      {
+        "action": "reply",
+        "text": "GMV是指支付成功订单实付金额。",
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A01"
+  },
+  {
+    "id": "M03",
+    "group": "multi",
+    "question": "2026年9月10日至9月15日，按天看键盘实付金额。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-10",
+            "end": "2026-09-16",
+            "dimension": "day",
+            "category": "键盘"
+          }
+        }
+      },
+      {
+        "action": "reply",
+        "text": "仅把日期改成2026年9月，其他条件不变。",
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": "键盘"
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "R02"
+  },
+  {
+    "id": "M04",
+    "group": "multi",
+    "question": "2026年9月1日至9月30日的实付金额，按天列出。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "reply",
+        "text": "日期换成2026年7月1日至9月30日，指标改成支付成功订单数，按月统计。",
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "count",
+            "start": "2026-07-01",
+            "end": "2026-10-01",
+            "dimension": "month",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A02"
+  },
+  {
+    "id": "M05",
+    "group": "multi",
+    "question": "每日的GMV是多少？",
+    "turns": [
+      {
+        "expect": {
+          "stage": "clarify",
+          "missing_fields": [
+            "metric",
+            "date"
+          ]
+        }
+      },
+      {
+        "action": "reply",
+        "text": "用实付金额，统计2026年9月1日至9月30日。",
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "A01"
+  },
+  {
+    "id": "M06",
+    "group": "multi",
+    "question": "把2026年9月的实付金额按天列给我。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-01",
+            "end": "2026-10-01",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "reply",
+        "text": "口径和分组照旧，时间缩到2026年9月10日到15日。",
+        "expect": {
+          "stage": "confirm",
+          "plan": {
+            "metric": "paid",
+            "start": "2026-09-10",
+            "end": "2026-09-16",
+            "dimension": "day",
+            "category": null
+          }
+        }
+      },
+      {
+        "action": "confirm",
+        "expect": {
+          "stage": "done"
+        }
+      }
+    ],
+    "reference": "R01"
+  },
+  {
+    "id": "B01",
+    "group": "boundary",
+    "question": "按天给我看看2026年9月的GMV。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "clarify",
+          "missing_fields": [
+            "metric"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "B02",
+    "group": "boundary",
+    "question": "请告诉我每天键盘实付金额。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "clarify",
+          "missing_fields": [
+            "date"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "B03",
+    "group": "boundary",
+    "question": "2026年9月1日和2026年9月10日这两天，查实付金额合计。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "clarify",
+          "missing_fields": [
+            "date"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "B04",
+    "group": "boundary",
+    "question": "2026年9月1日至9月30日，每天广告的点击转化率是多少？",
+    "turns": [
+      {
+        "expect": {
+          "stage": "reject"
+        }
+      }
+    ]
+  },
+  {
+    "id": "B05",
+    "group": "boundary",
+    "question": "2026年9月30日库存余额按品类汇总。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "reject"
+        }
+      }
+    ]
+  },
+  {
+    "id": "B06",
+    "group": "boundary",
+    "question": "2026年9月1日至9月30日，把实付金额和支付成功订单数同时放进一张按天结果。",
+    "turns": [
+      {
+        "expect": {
+          "stage": "reject"
+        }
+      }
+    ]
+  }
+]
