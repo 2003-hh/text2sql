@@ -11,7 +11,8 @@ from langgraph.types import interrupt
 
 from t2s.observability.trace import TraceRecorder
 from t2s.planning.decision_rules import (
-    apply_choice, apply_date_revision, apply_metric_reply, validate_decision,
+    apply_choice, apply_date_revision, apply_explicit_date, apply_metric_reply,
+    citation_diagnostics, validate_decision,
 )
 from t2s.planning.models import Plan
 from t2s.planning.planner import Planner, PlannerError
@@ -29,7 +30,8 @@ class WorkflowState(TypedDict):
 
 
 def build_graph(saver: BaseCheckpointSaver, catalog: dict, execute: Execute, claim: Claim,
-                planner: Planner | None = None, trace: TraceRecorder | None = None):
+                planner: Planner | None = None, trace: TraceRecorder | None = None, *,
+                evidence_diagnostics: bool = False):
     trace = trace if trace is not None else TraceRecorder()
 
     def record(name: str, session: Session, config: RunnableConfig, **details) -> None:
@@ -61,7 +63,11 @@ def build_graph(saver: BaseCheckpointSaver, catalog: dict, execute: Execute, cla
     def plan_validation(state: WorkflowState, config: RunnableConfig) -> WorkflowState:
         session = Session.model_validate(state["session"])
         started = perf_counter()
-        validate_decision(session, catalog)
+        if evidence_diagnostics:
+            record("evidence_diagnostics", session, config, **citation_diagnostics(session))
+            if apply_explicit_date(session):
+                record("explicit_date_applied", session, config)
+        validate_decision(session, catalog, enforce_evidence=not evidence_diagnostics)
         decision = session.decision
         plan = decision.plan if decision is not None else None
         record(

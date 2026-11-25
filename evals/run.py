@@ -127,7 +127,8 @@ def compare_rows(result: dict, session: dict, reference: str, rows: dict, errors
             break
 
 
-def run_case(client: httpx.Client, case: dict, reference_rows: dict, reference_errors: dict) -> dict:
+def run_case(client: httpx.Client, case: dict, reference_rows: dict, reference_errors: dict,
+             *, include_evidence: bool = False) -> dict:
     result = {"id": case["id"], "group": case["group"], "question": case.get("question"),
               "turns": [], "issues": [], "errors": [], "violations": []}
     started = perf_counter()
@@ -154,6 +155,8 @@ def run_case(client: httpx.Client, case: dict, reference_rows: dict, reference_e
             response_ms = round((perf_counter() - request_started) * 1000)
             observed = check_turn(result, turn["expect"], session)
             observed["response_ms"] = response_ms
+            if include_evidence:
+                observed["evidence"] = (session.get("decision") or {}).get("evidence", {})
             observed["action"] = action or "ask"
             result["turns"].append(observed)
             if result["issues"] or result["errors"] or result["violations"]:

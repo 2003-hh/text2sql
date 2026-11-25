@@ -16,5 +16,6 @@ class Settings(BaseSettings):
     ollama_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "qwen3.5:9b"
     ollama_timeout: int = Field(default=90, ge=1)
+    evidence_diagnostics: bool = False
     trace_max_events: int = Field(default=500, ge=1)
     trace_ttl_seconds: int = Field(default=604800, ge=1)

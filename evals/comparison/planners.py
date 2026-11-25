@@ -5,6 +5,7 @@ from t2s.main import create_app
 from t2s.planning.dates import parse_date_range
 from t2s.planning.evidence import explicit_metric
 from t2s.planning.models import Decision, Evidence, PartialPlan
+from t2s.settings import Settings
 
 
 _DIMENSIONS = {
@@ -98,4 +99,8 @@ def rules_app():
 
 
 def model_app():
-    return _evaluation_app("model")
+    return _evaluation_app("model", settings=Settings(evidence_diagnostics=False))
+
+
+def diagnostic_app():
+    return _evaluation_app("diagnostic", settings=Settings(evidence_diagnostics=True))

@@ -27,3 +27,22 @@ $env:PYTHONPATH = (Join-Path $PWD 'src')
 - 额外追问统计直接回答或拒绝时产生追问，以及本应澄清时问了额外字段。一题在首个偏差后停止，统计的是观察到的轮次。
 - 确认卡耗时只在两组都通过且产生确认卡的题目上配对统计。累计用户输入接口响应耗时，排除人工、SQL 执行和轨迹读取时间。
 - 两个实验服务共用规划节点的 Trace 事件名。看运行入口和报告分组区分规则组与模型组。实验没有替换默认服务配置。单次测量用于定位可复查的差异，模型输出会随运行变化。
+
+## 引文仅诊断实验
+
+在默认校验实验服务（端口 18332）之外，启动同模型的诊断版：
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn evals.comparison.planners:diagnostic_app --factory --app-dir src --host 127.0.0.1 --port 18333
+```
+
+另开 PowerShell 运行完整对照，也可以加 `--case L01 --case M05` 只跑指定题：
+
+```powershell
+$env:PYTHONPATH = Join-Path $PWD 'src'
+.\.venv\Scripts\python.exe -m evals.comparison.run --diagnostic-url http://127.0.0.1:18333
+```
+
+诊断版记录缺失的引文字段、不符的引文位置和引用的消息序号。公开 Trace 不含引文正文。实验报告的 JSON 为每轮保留合成测试题的引文，保存在本机 `.run/evals/evidence-diagnostics/`。用户明确给出的日期能唯一解析时，优先用于检查库存快照等业务限制。模型输出仍须能解析为结构化决策，明确缺项或拒绝仍走原流程。两组仍由同一套业务规则和人工确认把关。
+
+实验的 A/B 同时比较取消证据拦截和明确日期优先两项变化，两组分别调用模型，输出可能有波动。复用同一条固定候选计划的单元测试用来验证证据和日期的单独行为。评分不会批准错误确认卡。

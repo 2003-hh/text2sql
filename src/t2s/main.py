@@ -52,6 +52,7 @@ def create_app(
                         create_checkpointer(redis), catalog,
                         partial(execute_query, settings=config), claim,
                         planner=planner_factory(config, catalog), trace=trace,
+                        evidence_diagnostics=config.evidence_diagnostics,
                     )
                 return service
 

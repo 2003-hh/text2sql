@@ -137,3 +137,80 @@ def test_trace_storage_failure_never_blocks_queries():
         response = c.get(url + "/trace")
         assert response.status_code == 503 and "PRIVATE_DSN" not in response.text
     executor.assert_called_once()
+
+
+def test_evidence_diagnostics_do_not_block_a_valid_plan_or_expose_quotes():
+    planner = Mock(return_value=Decision.model_validate({
+        "reason": "candidate",
+        "plan": PLAN,
+        "evidence": {"dimension": [{"message": 1, "quote": "PRIVATE_WRONG_REFERENCE"}],
+                     "date": [{"message": 0, "quote": "2026年9月"}]},
+    }))
+    executor = Mock(return_value=[["2026-09-01", 12]])
+    store = MemoryEvents()
+    service = SessionService(InMemorySaver(), load_catalog(), executor, Mock(return_value=True),
+                             planner=planner, trace=TraceRecorder(store), evidence_diagnostics=True)
+    with TestClient(create_app(probes={}, sessions=lambda: service)) as client:
+        pending = client.post("/sessions", json={"question": "2026年9月，一天一天实际付了多少钱？"}).json()
+        assert pending["stage"] == "confirm"
+        assert pending["decision"]["evidence"]["dimension"][0]["quote"] == "PRIVATE_WRONG_REFERENCE"
+        url = "/sessions/" + pending["id"]
+        trace = client.get(url + "/trace")
+        names = [event["name"] for event in trace.json()["events"]]
+        summary = next(event["summary"] for event in trace.json()["events"]
+                       if event["name"] == "evidence_diagnostics")
+        assert summary["missing_citations"] == ["metric"]
+        assert summary["invalid_citations"] == ["dimension"]
+        assert "PRIVATE_WRONG_REFERENCE" not in trace.text
+        assert "sql_started" not in names
+        executor.assert_not_called()
+
+        done = client.post(url + "/respond", json={"action": "confirm", "revision": 0}).json()
+        assert done["stage"] == "done" and done["executions"] == 1
+    executor.assert_called_once()
+
+
+def test_diagnostics_keeps_unambiguous_user_date_and_rejects_missing_snapshot():
+    planner = Mock(return_value=Decision.model_validate({
+        "reason": "candidate",
+        "plan": {"metric": "stock_qty", "dimension": "category",
+                 "start": "2026-10-31", "end": "2026-10-31", "end_inclusive": True},
+    }))
+    executor = Mock()
+    store = MemoryEvents()
+    service = SessionService(InMemorySaver(), load_catalog(), executor, Mock(return_value=True),
+                             planner=planner, trace=TraceRecorder(store), evidence_diagnostics=True)
+    with TestClient(create_app(probes={}, sessions=lambda: service)) as client:
+        response = client.post("/sessions", json={"question": "2026年9月30日的库存按品类看。"}).json()
+        assert response["stage"] == "reject"
+        assert response["decision"]["plan"]["start"] == "2026-09-30"
+        url = "/sessions/" + response["id"]
+        events = client.get(url + "/trace").json()["events"]
+        assert "explicit_date_applied" in [event["name"] for event in events]
+        assert client.post(url + "/respond", json={"action": "confirm", "revision": 0}).status_code == 409
+    executor.assert_not_called()
+
+
+def test_diagnostics_does_not_skip_requested_clarification():
+    planner = Mock(return_value=Decision.model_validate({
+        "status": "clarify", "reason": "请选择销售额口径",
+        "plan": PLAN, "missing_fields": ["metric"],
+    }))
+    executor = Mock()
+    service = SessionService(InMemorySaver(), load_catalog(), executor, Mock(return_value=True),
+                             planner=planner, evidence_diagnostics=True)
+    with TestClient(create_app(probes={}, sessions=lambda: service)) as client:
+        pending = client.post("/sessions", json={"question": "2026年9月每天销售额是多少？"}).json()
+        assert pending["stage"] == "clarify"
+        assert pending["decision"]["missing_fields"] == ["metric"]
+    executor.assert_not_called()
+
+
+def test_explicit_date_does_not_treat_open_bounds_or_alternatives_as_one_day():
+    from t2s.planning.dates import explicit_date_in_text
+
+    assert explicit_date_in_text("从2026年9月30日开始查库存。") is None
+    assert explicit_date_in_text("查2026年9月30日或10月31日的库存。") is None
+    assert explicit_date_in_text("查2026年9月30日和上月的库存。") is None
+    assert explicit_date_in_text("查截至2026年9月30日的库存。") is None
+    assert explicit_date_in_text("查2026年9月30日的库存。").start.isoformat() == "2026-09-30"

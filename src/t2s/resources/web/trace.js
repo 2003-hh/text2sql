@@ -18,6 +18,8 @@ const tracePanel = (() => {
     planner_finished: '已生成候选计划',
     planner_failed: '规划失败',
     plan_validated: '已检查查询计划',
+    evidence_diagnostics: '已记录引文诊断',
+    explicit_date_applied: '已采用用户明确给出的日期',
     plan_rejected: '查询计划被拒绝',
     clarification_required: '等待补充条件',
     approval_required: '等待确认',
@@ -61,12 +63,16 @@ const tracePanel = (() => {
     stage_conflict: '当前阶段不再接受该操作',
     planner_failed: '未能生成有效计划',
     plan_rejected: '计划未通过规则校验',
+    missing_query_conditions: '查询条件不完整或仍需澄清',
     insufficient_evidence: '查询条件缺少明确依据',
     already_claimed: '该版本已取得执行权，已阻止重复查询',
     query_execution_failed: '执行器返回查询错误',
   };
   const sourceNames = { question: '自然语言提问', plan: '直接提交查询计划', checkpoint: '已保存的会话' };
   const summaryFields = {
+    missing_citations: ['缺少引文', '候选字段没有附带引用。此记录仅用于调试。', fieldNames],
+    invalid_citations: ['引用位置或原话不符', '引文未在指定消息中找到。此记录仅用于调试。', fieldNames],
+    citation_references: ['引用位置', '格式为字段名:消息编号。消息从 0 开始计数。'],
     source: ['数据来源', '说明当前会话从哪里创建，或本次读取从哪里恢复。', sourceNames],
     metric: ['指标口径', '记录计划采用的业务指标代码，例如 paid 代表支付金额。'],
     dimension: ['分组维度', '记录查询如何分组，例如 day 代表按天。'],

@@ -98,6 +98,22 @@ def parse_date_range(text: str) -> DateRange | None:
     return None
 
 
+def explicit_date_in_text(text: str) -> DateRange | None:
+    """只采纳唯一且带明确年份的日期表达。"""
+    matches = list(re.finditer(_EXPLICIT_DATE, text))
+    if len(matches) != 1 or re.search(r"不是|并非|不查|不要|排除|不含|不包括|之前|之后|以前|以后", text):
+        return None
+    match = matches[0]
+    other_text = text[:match.start()] + " " + text[match.end():]
+    if re.search(
+        r"\d\s*[年月日号]|\d{4}-|本月|上月|上个月|今天|昨天|这周|上周|"
+        r"今年|去年|明年|本周|本季度|上季度|最近|过去|截至|截止|以来|往后|开始|起算",
+        other_text,
+    ):
+        return None
+    return parse_date_range(match[0])
+
+
 def parse_date_revision(text: str) -> tuple[DateRange, str] | None:
     match = _DATE_REVISION.fullmatch(text.strip())
     if match is None:

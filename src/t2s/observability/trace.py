@@ -22,6 +22,8 @@ _EVENT_TYPES = {
     "planner_finished": ("model", "success"),
     "planner_failed": ("model", "error"),
     "plan_validated": ("validation", "success"),
+    "evidence_diagnostics": ("validation", "recorded"),
+    "explicit_date_applied": ("validation", "recorded"),
     "plan_rejected": ("validation", "blocked"),
     "clarification_required": ("human", "waiting"),
     "approval_required": ("human", "waiting"),
@@ -43,7 +45,7 @@ _DIMENSIONS = frozenset({"none", "day", "month", "category"})
 Action = Literal["choose", "reply", "confirm", "cancel"]
 ReasonCode = Literal[
     "stale_revision", "stage_conflict", "planner_failed", "plan_rejected",
-    "insufficient_evidence", "already_claimed", "query_execution_failed",
+    "insufficient_evidence", "missing_query_conditions", "already_claimed", "query_execution_failed",
 ]
 
 
@@ -89,6 +91,9 @@ class TraceRecorder:
         submitted_revision: int | None = None, action: Action | None = None,
         source: Literal["question", "plan", "checkpoint"] | None = None,
         executions: int | None = None, once_per_revision: bool = False,
+        missing_citations: list[EvidenceField] | None = None,
+        invalid_citations: list[EvidenceField] | None = None,
+        citation_references: list[str] | None = None,
     ) -> None:
         if self._store is None:
             return
@@ -105,6 +110,9 @@ class TraceRecorder:
             "action": action,
             "source": source,
             "executions": executions,
+            "missing_citations": missing_citations,
+            "invalid_citations": invalid_citations,
+            "citation_references": citation_references,
         }.items() if value is not None}
         event = TraceEvent(
             event_id=str(uuid4()), timestamp=datetime.now(UTC), session_id=session_id,

@@ -22,10 +22,13 @@ class SessionConflict(Exception):
 
 class SessionService:
     def __init__(self, saver: BaseCheckpointSaver, catalog: dict, execute: Execute, claim: Claim,
-                 *, planner: Planner | None = None, trace: TraceRecorder | None = None):
+                 *, planner: Planner | None = None, trace: TraceRecorder | None = None,
+                 evidence_diagnostics: bool = False):
         self._catalog = catalog
         self._trace = trace if trace is not None else TraceRecorder()
-        self._graph = build_graph(saver, catalog, execute, claim, planner, self._trace)
+        self._evidence_diagnostics = evidence_diagnostics
+        self._graph = build_graph(saver, catalog, execute, claim, planner, self._trace,
+                                  evidence_diagnostics=evidence_diagnostics)
         self._locks = tuple(Lock() for _ in range(32))
 
     @staticmethod
@@ -43,11 +46,12 @@ class SessionService:
         if session.stage not in {"confirm", "clarify"}:
             return
         decision = session.decision
+        reason_code = "missing_query_conditions" if self._evidence_diagnostics else "insufficient_evidence"
         self._trace.emit(
             "approval_required" if session.stage == "confirm" else "clarification_required",
             session_id=session.id, request_id=request_id, revision=session.revision, stage=session.stage,
             missing_fields=decision.missing_fields if session.stage == "clarify" and decision else None,
-            reason_code="insufficient_evidence" if session.stage == "clarify" else None,
+            reason_code=reason_code if session.stage == "clarify" else None,
             once_per_revision=True,
         )
 
